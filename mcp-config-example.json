@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "notebookllm": {
+      "command": "node",
+      "args": ["~/.notebookllm-mcp/index.js"],
+      "env": {
+        "BACKEND_URL": "https://notebookllm-ufj7.onrender.com",
+        "CODING_AGENT_API_KEY": "nllm_your-personal-api-token-here"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "verify_code",
+        "analyze_code",
+        "get_followup_messages"
+      ]
+    }
+  },
+  "_comments": {
+    "CODING_AGENT_API_KEY": "Generate from NotebookLLM app: Settings → Agent Connections → Generate New Token",
+    "communication": "Use get_followup_messages to check for user messages, respond_to_followup to reply"
+  }
+}
