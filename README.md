@@ -23,9 +23,9 @@ curl -fsSL https://raw.githubusercontent.com/cmgzone/notebookllm/master/scripts/
 - **Source Management**: Save verified code as sources in your app
 - **Batch Processing**: Verify multiple code snippets at once
 - **Multi-Language Support**: JavaScript, TypeScript, Python, Dart, JSON, and more
-- **Agent Communication**: Bidirectional communication with follow-up messages
+- **Planning Mode**: Create and manage implementation plans with tasks
+- **Task Tracking**: Update task status, add outputs, and track progress
 - **GitHub Integration**: Access repositories, files, and create issues
-- **Planning Mode**: Create and manage plans, requirements, tasks, and design notes
 
 ## Tools Available
 
@@ -87,140 +87,91 @@ Retrieve previously saved verified code sources.
 }
 ```
 
----
+## Planning Mode Tools
 
-## Agent Communication Tools
-
-### `create_agent_notebook`
-Create a dedicated notebook for your coding agent with bidirectional communication.
-
-```json
-{
-  "agentName": "Claude",
-  "agentIdentifier": "claude-3-opus",
-  "title": "My Agent Workspace",
-  "webhookUrl": "https://your-webhook.com/messages"
-}
-```
-
-### `save_code_with_context`
-Save code with full conversation context for follow-up discussions.
-
-```json
-{
-  "code": "...",
-  "language": "typescript",
-  "title": "Auth Service",
-  "notebookId": "notebook-id",
-  "conversationContext": "User asked for a JWT authentication service..."
-}
-```
-
-### `get_followup_messages`
-Poll for pending user messages about saved code.
-
-### `respond_to_followup`
-Send responses to user follow-up questions.
-
----
-
-## GitHub Integration Tools
-
-### `github_status`
-Check if GitHub is connected for the current user.
-
-### `github_list_repos`
-List accessible GitHub repositories.
-
-### `github_get_file`
-Get contents of a file from a repository.
-
-### `github_search_code`
-Search for code across repositories.
-
-### `github_create_issue`
-Create issues in GitHub repositories.
-
-### `github_add_as_source`
-Import a GitHub file as a notebook source.
-
----
-
-## Planning Mode Tools 🆕
+The MCP server also provides tools for managing plans and tasks, enabling coding agents to work on structured implementation plans.
 
 ### `list_plans`
-List all accessible plans for the user.
+List all plans accessible to the authenticated user.
+
+```json
+{
+  "status": "active",
+  "includeArchived": false,
+  "limit": 50,
+  "offset": 0
+}
+```
 
 ### `get_plan`
-Get a specific plan with full details including requirements, tasks, and design notes.
+Get a specific plan with full details including requirements, design notes, and tasks.
+
+```json
+{
+  "planId": "plan-uuid-here",
+  "includeRelations": true
+}
+```
 
 ### `create_plan`
-Create a new plan.
+Create a new plan following the spec-driven format.
 
 ```json
 {
   "title": "My Feature Plan",
-  "description": "Plan for implementing new feature"
+  "description": "Implementation plan for new feature",
+  "isPrivate": true
 }
 ```
 
 ### `create_task`
-Create a task within a plan.
+Create a new task in a plan.
 
 ```json
 {
-  "planId": "plan-id",
-  "title": "Implement login form",
-  "description": "Create the login form component",
-  "priority": "high"
-}
-```
-
-### `update_task_status`
-Update the status of a task (todo, in_progress, review, done).
-
-### `add_task_output`
-Add output/notes to a task.
-
-### `complete_task`
-Mark a task as complete with a summary.
-
-### `create_requirement` 🆕
-Create a requirement with EARS (Easy Approach to Requirements Syntax) patterns.
-
-```json
-{
-  "planId": "plan-id",
-  "title": "User Authentication",
-  "description": "Users must be able to authenticate",
-  "earsPattern": "event",
-  "acceptanceCriteria": [
-    "User can login with email/password",
-    "User receives error for invalid credentials"
-  ]
-}
-```
-
-**EARS Patterns:**
-- `ubiquitous` - THE system SHALL response
-- `event` - WHEN trigger, THE system SHALL response
-- `state` - WHILE condition, THE system SHALL response
-- `unwanted` - IF condition, THEN THE system SHALL response
-- `optional` - WHERE option, THE system SHALL response
-- `complex` - Combination of patterns
-
-### `create_design_note` 🆕
-Create a design note for architectural decisions.
-
-```json
-{
-  "planId": "plan-id",
-  "content": "We will use JWT tokens for authentication with refresh token rotation...",
+  "planId": "plan-uuid-here",
+  "title": "Implement user authentication",
+  "description": "Add login and registration functionality",
+  "priority": "high",
   "requirementIds": ["req-1", "req-2"]
 }
 ```
 
----
+### `update_task_status`
+Update a task's status (not_started, in_progress, paused, blocked, completed).
+
+```json
+{
+  "planId": "plan-uuid-here",
+  "taskId": "task-uuid-here",
+  "status": "in_progress",
+  "reason": "Optional reason for status change"
+}
+```
+
+### `add_task_output`
+Add an output to a task (comment, code, file, or completion note).
+
+```json
+{
+  "planId": "plan-uuid-here",
+  "taskId": "task-uuid-here",
+  "type": "code",
+  "content": "function authenticate() { ... }",
+  "agentName": "Kiro"
+}
+```
+
+### `complete_task`
+Complete a task with an optional summary.
+
+```json
+{
+  "planId": "plan-uuid-here",
+  "taskId": "task-uuid-here",
+  "summary": "Implemented authentication with JWT tokens"
+}
+```
 
 ## Installation
 

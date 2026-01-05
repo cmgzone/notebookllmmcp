@@ -38,5 +38,16 @@
  * - github_add_comment: Comment on issues/PRs
  * - github_add_as_source: Import GitHub file as notebook source
  * - github_analyze_repo: AI analysis of repository
+ *
+ * Planning Mode Tools (Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6):
+ * - list_plans: List all accessible plans
+ * - get_plan: Get a specific plan with full details
+ * - create_plan: Create a new plan
+ * - create_task: Create a task in a plan
+ * - update_task_status: Update task status
+ * - add_task_output: Add output to a task
+ * - complete_task: Complete a task with summary
+ * - create_requirement: Create a requirement with EARS pattern
+ * - create_design_note: Create a design note for architectural decisions
  */
 export {};
