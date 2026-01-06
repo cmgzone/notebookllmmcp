@@ -49,5 +49,10 @@
  * - complete_task: Complete a task with summary
  * - create_requirement: Create a requirement with EARS pattern
  * - create_design_note: Create a design note for architectural decisions
+ * - get_design_notes: Get design notes including UI designs from a plan
+ *
+ * Time & Context Tools (Reduce AI Hallucinations):
+ * - get_current_time: Get current date/time with timezone info
+ * - web_search: Search the web for latest information
  */
 export {};

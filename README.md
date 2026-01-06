@@ -220,7 +220,7 @@ Example: `nllm_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2`
 Create a `.env` file:
 
 ```env
-BACKEND_URL=http://localhost:3000
+BACKEND_URL=https://notebookllm-ufj7.onrender.com
 CODING_AGENT_API_KEY=nllm_your-personal-api-token-here
 ```
 
@@ -239,7 +239,7 @@ Add to `.kiro/settings/mcp.json`:
       "command": "node",
       "args": ["path/to/backend/mcp-server/dist/index.js"],
       "env": {
-        "BACKEND_URL": "http://localhost:3000",
+        "BACKEND_URL": "https://notebookllm-ufj7.onrender.com",
         "CODING_AGENT_API_KEY": "nllm_your-personal-api-token-here"
       }
     }
@@ -258,7 +258,7 @@ Add to `claude_desktop_config.json`:
       "command": "node",
       "args": ["/absolute/path/to/backend/mcp-server/dist/index.js"],
       "env": {
-        "BACKEND_URL": "http://localhost:3000",
+        "BACKEND_URL": "https://notebookllm-ufj7.onrender.com",
         "CODING_AGENT_API_KEY": "nllm_your-personal-api-token-here"
       }
     }
