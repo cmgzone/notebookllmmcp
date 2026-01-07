@@ -173,6 +173,75 @@ Complete a task with an optional summary.
 }
 ```
 
+## Code Review Tools
+
+The MCP server provides AI-powered code review capabilities to help improve code quality.
+
+### `review_code`
+Submit code for comprehensive AI-powered review.
+
+```json
+{
+  "code": "function processData(data) { return data.map(x => x * 2); }",
+  "language": "javascript",
+  "reviewType": "comprehensive",
+  "context": "Data processing utility",
+  "saveReview": true
+}
+```
+
+Returns:
+- `score`: Quality score (0-100)
+- `summary`: Brief overview of code quality
+- `issues`: Array of issues with severity, category, line numbers, and suggestions
+- `suggestions`: General improvement recommendations
+
+Review types:
+- `comprehensive`: Full analysis (default)
+- `security`: Focus on security vulnerabilities
+- `performance`: Focus on performance issues
+- `readability`: Focus on code clarity and maintainability
+
+### `get_review_history`
+Retrieve past code reviews for tracking improvements.
+
+```json
+{
+  "language": "typescript",
+  "limit": 20,
+  "minScore": 50,
+  "maxScore": 100
+}
+```
+
+### `compare_code_versions`
+Compare two versions of code to analyze improvements.
+
+```json
+{
+  "originalCode": "function old() { ... }",
+  "updatedCode": "function improved() { ... }",
+  "language": "javascript",
+  "context": "Refactored for performance"
+}
+```
+
+Returns:
+- `originalScore`, `updatedScore`: Quality scores for both versions
+- `improvement`: Score difference
+- `resolvedIssues`: Issues fixed in the updated version
+- `newIssues`: New issues introduced
+- `summary`: Analysis of the changes
+
+### `get_review_detail`
+Get full details of a specific code review by ID.
+
+```json
+{
+  "reviewId": "review-uuid-here"
+}
+```
+
 ## Installation
 
 ### Option 1: Quick Install (Recommended)

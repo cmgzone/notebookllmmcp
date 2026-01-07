@@ -1457,6 +1457,149 @@ Use this to:
       required: ['planId'],
     },
   },
+  // ==================== CODE REVIEW TOOLS ====================
+  {
+    name: 'review_code',
+    description: `Submit code for comprehensive AI-powered review.
+    
+Returns a detailed code review with:
+- score: Overall quality score (0-100)
+- issues: Array of issues found with severity, category, line numbers
+- suggestions: Improvement recommendations with code examples
+- summary: Brief overview of the code quality
+
+Review types:
+- comprehensive: Full analysis (default)
+- security: Focus on security vulnerabilities
+- performance: Focus on performance issues
+- readability: Focus on code clarity and maintainability
+
+Use this to get actionable feedback on code quality before committing.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'The code to review',
+        },
+        language: {
+          type: 'string',
+          description: 'Programming language (javascript, typescript, python, dart, etc.)',
+        },
+        reviewType: {
+          type: 'string',
+          description: 'Type of review: comprehensive, security, performance, readability',
+          enum: ['comprehensive', 'security', 'performance', 'readability'],
+          default: 'comprehensive',
+        },
+        context: {
+          type: 'string',
+          description: 'Optional context about what the code should do',
+        },
+        saveReview: {
+          type: 'boolean',
+          description: 'Save the review to history (default: true)',
+          default: true,
+        },
+      },
+      required: ['code', 'language'],
+    },
+  },
+  {
+    name: 'get_review_history',
+    description: `Retrieve past code reviews for tracking improvements over time.
+    
+Returns an array of past reviews with:
+- id, code snippet preview, language
+- score, issue counts by severity
+- reviewType, createdAt
+
+Filter options:
+- language: Filter by programming language
+- limit: Max results (default: 20)
+- minScore/maxScore: Filter by score range
+
+Use this to track code quality improvements over time.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        language: {
+          type: 'string',
+          description: 'Filter by programming language',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum results to return (default: 20)',
+          default: 20,
+        },
+        minScore: {
+          type: 'number',
+          description: 'Minimum score filter (0-100)',
+        },
+        maxScore: {
+          type: 'number',
+          description: 'Maximum score filter (0-100)',
+        },
+      },
+    },
+  },
+  {
+    name: 'compare_code_versions',
+    description: `Compare two versions of code to analyze improvements.
+    
+Returns:
+- originalScore, updatedScore: Quality scores for both versions
+- improvement: Score difference
+- resolvedIssues: Issues fixed in the updated version
+- newIssues: New issues introduced
+- summary: Analysis of the changes
+
+Use this to verify that code changes actually improve quality.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        originalCode: {
+          type: 'string',
+          description: 'The original code version',
+        },
+        updatedCode: {
+          type: 'string',
+          description: 'The updated code version',
+        },
+        language: {
+          type: 'string',
+          description: 'Programming language',
+        },
+        context: {
+          type: 'string',
+          description: 'Optional context about the changes',
+        },
+      },
+      required: ['originalCode', 'updatedCode', 'language'],
+    },
+  },
+  {
+    name: 'get_review_detail',
+    description: `Get full details of a specific code review by ID.
+    
+Returns the complete review including:
+- Full code that was reviewed
+- All issues with line numbers and suggestions
+- Score breakdown by category
+- AI-generated improvement recommendations
+
+Use this to revisit a past review in detail.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        reviewId: {
+          type: 'string',
+          description: 'The ID of the review to retrieve',
+        },
+      },
+      required: ['reviewId'],
+    },
+  },
   // ==================== TIME & CONTEXT TOOLS ====================
   {
     name: 'get_current_time',
@@ -1784,6 +1927,34 @@ const CreateDesignNoteSchema = z.object({
 const GetDesignNotesSchema = z.object({
   planId: z.string().min(1),
   filterUiDesigns: z.boolean().optional().default(false),
+});
+
+// ==================== CODE REVIEW SCHEMAS ====================
+
+const ReviewCodeSchema = z.object({
+  code: z.string().min(1),
+  language: z.string().min(1),
+  reviewType: z.enum(['comprehensive', 'security', 'performance', 'readability']).optional().default('comprehensive'),
+  context: z.string().optional(),
+  saveReview: z.boolean().optional().default(true),
+});
+
+const GetReviewHistorySchema = z.object({
+  language: z.string().optional(),
+  limit: z.number().optional().default(20),
+  minScore: z.number().min(0).max(100).optional(),
+  maxScore: z.number().min(0).max(100).optional(),
+});
+
+const CompareCodeVersionsSchema = z.object({
+  originalCode: z.string().min(1),
+  updatedCode: z.string().min(1),
+  language: z.string().min(1),
+  context: z.string().optional(),
+});
+
+const GetReviewDetailSchema = z.object({
+  reviewId: z.string().min(1),
 });
 
 const GetCurrentTimeSchema = z.object({
@@ -2427,6 +2598,66 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           params: { filterUiDesigns: filterUiDesigns ? 'true' : 'false' }
         });
         
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(response.data, null, 2),
+            },
+          ],
+        };
+      }
+
+      // ==================== CODE REVIEW TOOL HANDLERS ====================
+
+      case 'review_code': {
+        const input = ReviewCodeSchema.parse(args);
+        const response = await api.post('/review', input);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(response.data, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'get_review_history': {
+        const input = GetReviewHistorySchema.parse(args);
+        const params = new URLSearchParams();
+        if (input.language) params.append('language', input.language);
+        if (input.limit) params.append('limit', input.limit.toString());
+        if (input.minScore !== undefined) params.append('minScore', input.minScore.toString());
+        if (input.maxScore !== undefined) params.append('maxScore', input.maxScore.toString());
+        
+        const response = await api.get(`/reviews?${params.toString()}`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(response.data, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'compare_code_versions': {
+        const input = CompareCodeVersionsSchema.parse(args);
+        const response = await api.post('/review/compare', input);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(response.data, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'get_review_detail': {
+        const input = GetReviewDetailSchema.parse(args);
+        const response = await api.get(`/reviews/${input.reviewId}`);
         return {
           content: [
             {
