@@ -257,6 +257,10 @@ Returns:
           type: 'string',
           description: 'Optional description for the notebook',
         },
+        category: {
+          type: 'string',
+          description: 'Optional category (e.g., "Coding", "Research"). Defaults to "General"',
+        },
         webhookUrl: {
           type: 'string',
           description: 'Optional webhook URL for receiving follow-up messages',
@@ -480,6 +484,7 @@ Returns a list of notebooks including:
 - id, title, description, icon
 - isAgentNotebook: Whether created by an agent
 - sourceCount: Number of code sources in the notebook
+- category: Notebook category
 - createdAt, updatedAt
 
 Use this to find notebooks to save code to or to browse your previous work.`,
@@ -1467,12 +1472,18 @@ Returns a detailed code review with:
 - issues: Array of issues found with severity, category, line numbers
 - suggestions: Improvement recommendations with code examples
 - summary: Brief overview of the code quality
+- relatedFilesUsed: Files used for context (if GitHub context provided)
 
 Review types:
 - comprehensive: Full analysis (default)
 - security: Focus on security vulnerabilities
 - performance: Focus on performance issues
 - readability: Focus on code clarity and maintainability
+
+CONTEXT-AWARE REVIEWS:
+Provide githubContext to enable context-aware reviews that analyze your code
+in relation to imported/dependent files from your GitHub repository.
+This helps catch integration issues, type mismatches, and incorrect API usage.
 
 Use this to get actionable feedback on code quality before committing.`,
     inputSchema: {
@@ -1500,6 +1511,35 @@ Use this to get actionable feedback on code quality before committing.`,
           type: 'boolean',
           description: 'Save the review to history (default: true)',
           default: true,
+        },
+        githubContext: {
+          type: 'object',
+          description: 'GitHub repository context for context-aware reviews. Automatically fetches imported files.',
+          properties: {
+            owner: {
+              type: 'string',
+              description: 'Repository owner (username or org)',
+            },
+            repo: {
+              type: 'string',
+              description: 'Repository name',
+            },
+            branch: {
+              type: 'string',
+              description: 'Branch name (optional, defaults to default branch)',
+            },
+            maxFiles: {
+              type: 'number',
+              description: 'Maximum number of related files to fetch (default: 5)',
+              default: 5,
+            },
+            maxFileSize: {
+              type: 'number',
+              description: 'Maximum file size in bytes to fetch (default: 50000)',
+              default: 50000,
+            },
+          },
+          required: ['owner', 'repo'],
         },
       },
       required: ['code', 'language'],
@@ -1712,6 +1752,7 @@ const CreateAgentNotebookSchema = z.object({
   agentIdentifier: z.string().min(1),
   title: z.string().optional(),
   description: z.string().optional(),
+  category: z.string().optional(),
   webhookUrl: z.string().url().optional(),
   webhookSecret: z.string().min(16).optional(),
   metadata: z.record(z.any()).optional(),
@@ -1931,12 +1972,21 @@ const GetDesignNotesSchema = z.object({
 
 // ==================== CODE REVIEW SCHEMAS ====================
 
+const GitHubContextSchema = z.object({
+  owner: z.string().min(1),
+  repo: z.string().min(1),
+  branch: z.string().optional(),
+  maxFiles: z.number().min(1).max(10).optional().default(5),
+  maxFileSize: z.number().min(1000).max(100000).optional().default(50000),
+});
+
 const ReviewCodeSchema = z.object({
   code: z.string().min(1),
   language: z.string().min(1),
   reviewType: z.enum(['comprehensive', 'security', 'performance', 'readability']).optional().default('comprehensive'),
   context: z.string().optional(),
   saveReview: z.boolean().optional().default(true),
+  githubContext: GitHubContextSchema.optional(),
 });
 
 const GetReviewHistorySchema = z.object({
@@ -2067,7 +2117,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const params = new URLSearchParams();
         if (input.notebookId) params.append('notebookId', input.notebookId);
         if (input.language) params.append('language', input.language);
-        
+
         const response = await api.get(`/sources?${params.toString()}`);
         return {
           content: [
@@ -2112,7 +2162,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const params = new URLSearchParams();
         if (input.agentSessionId) params.append('agentSessionId', input.agentSessionId);
         if (input.agentIdentifier) params.append('agentIdentifier', input.agentIdentifier);
-        
+
         const response = await api.get(`/followups?${params.toString()}`);
         return {
           content: [
@@ -2207,7 +2257,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (input.language) params.append('language', input.language);
         if (input.notebookId) params.append('notebookId', input.notebookId);
         if (input.limit) params.append('limit', input.limit.toString());
-        
+
         const response = await api.get(`/sources/search?${params.toString()}`);
         return {
           content: [
@@ -2253,7 +2303,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (input.language) params.append('language', input.language);
         if (input.includeVerification !== undefined) params.append('includeVerification', input.includeVerification.toString());
         if (input.includeConversations !== undefined) params.append('includeConversations', input.includeConversations.toString());
-        
+
         const response = await api.get(`/sources/export?${params.toString()}`);
         return {
           content: [
@@ -2269,7 +2319,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const input = GetUsageStatsSchema.parse(args);
         const params = new URLSearchParams();
         if (input.period) params.append('period', input.period);
-        
+
         const response = await api.get(`/stats?${params.toString()}`);
         return {
           content: [
@@ -2302,7 +2352,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (input.sort) params.append('sort', input.sort);
         if (input.perPage) params.append('perPage', input.perPage.toString());
         if (input.page) params.append('page', input.page.toString());
-        
+
         const response = await githubApi.get(`/repos?${params.toString()}`);
         return {
           content: [
@@ -2350,7 +2400,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (input.language) params.append('language', input.language);
         if (input.path) params.append('path', input.path);
         if (input.perPage) params.append('perPage', input.perPage.toString());
-        
+
         const response = await githubApi.get(`/search?${params.toString()}`);
         return {
           content: [
@@ -2464,7 +2514,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (input.includeArchived !== undefined) params.append('includeArchived', input.includeArchived.toString());
         if (input.limit) params.append('limit', input.limit.toString());
         if (input.offset) params.append('offset', input.offset.toString());
-        
+
         const response = await planningApi.get(`/?${params.toString()}`);
         return {
           content: [
@@ -2478,8 +2528,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
 
       case 'get_plan': {
         const input = GetPlanSchema.parse(args);
-        const params = input.includeRelations !== undefined 
-          ? `?includeRelations=${input.includeRelations}` 
+        const params = input.includeRelations !== undefined
+          ? `?includeRelations=${input.includeRelations}`
           : '';
         const response = await planningApi.get(`/${input.planId}${params}`);
         return {
@@ -2592,12 +2642,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       case 'get_design_notes': {
         const input = GetDesignNotesSchema.parse(args);
         const { planId, filterUiDesigns } = input;
-        
+
         // Use the dedicated design notes endpoint
         const response = await planningApi.get(`/${planId}/design-notes`, {
           params: { filterUiDesigns: filterUiDesigns ? 'true' : 'false' }
         });
-        
+
         return {
           content: [
             {
@@ -2630,7 +2680,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (input.limit) params.append('limit', input.limit.toString());
         if (input.minScore !== undefined) params.append('minScore', input.minScore.toString());
         if (input.maxScore !== undefined) params.append('maxScore', input.maxScore.toString());
-        
+
         const response = await api.get(`/reviews?${params.toString()}`);
         return {
           content: [
@@ -2672,33 +2722,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       case 'get_current_time': {
         const input = GetCurrentTimeSchema.parse(args);
         const { format } = input;
-        
+
         const now = new Date();
         const utcNow = now.toISOString();
-        
+
         // Calculate week number
         const startOfYear = new Date(now.getFullYear(), 0, 1);
         const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
         const weekNumber = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
-        
+
         // Calculate quarter
         const quarter = Math.ceil((now.getMonth() + 1) / 3);
-        
+
         // Days until end of month
         const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         const daysUntilEndOfMonth = lastDayOfMonth.getDate() - now.getDate();
-        
+
         // Days until end of year
         const lastDayOfYear = new Date(now.getFullYear(), 11, 31);
         const daysUntilEndOfYear = Math.floor((lastDayOfYear.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-        
+
         // Timezone info
         const timezoneOffset = now.getTimezoneOffset();
         const timezoneHours = Math.floor(Math.abs(timezoneOffset) / 60);
         const timezoneMinutes = Math.abs(timezoneOffset) % 60;
         const timezoneSign = timezoneOffset <= 0 ? '+' : '-';
         const timezone = `UTC${timezoneSign}${timezoneHours.toString().padStart(2, '0')}:${timezoneMinutes.toString().padStart(2, '0')}`;
-        
+
         if (format === 'short') {
           return {
             content: [
@@ -2713,7 +2763,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
             ],
           };
         }
-        
+
         return {
           content: [
             {
@@ -2738,7 +2788,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       case 'web_search': {
         const input = WebSearchSchema.parse(args);
         const { query, num } = input;
-        
+
         try {
           // Use the backend search proxy endpoint
           const response = await axios.post(`${BACKEND_URL}/api/search/proxy`, {
@@ -2752,9 +2802,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
             },
             timeout: 15000,
           });
-          
+
           const results = response.data?.organic || [];
-          
+
           return {
             content: [
               {
