@@ -317,6 +317,34 @@ const results = await web_search({
 });
 ```
 
+### Agent Skills Workflow
+
+**When to use:** Leveraging reusable professional skills (Code Review, Testing, Architecture).
+
+```javascript
+// 1. List available skills
+const skillsList = await list_agent_skills();
+console.log("Available skills:", skillsList.map(s => s.name));
+
+// 2. Use a specific skill (e.g., Code Review)
+const reviewSkill = skillsList.find(s => s.name === "Senior Code Reviewer");
+
+if (reviewSkill) {
+  // Apply the skill's instruction to your work
+  const instruction = reviewSkill.content;
+  
+  // Example: Review code using the skill
+  // Your internal logic here using 'instruction' to guide generation
+}
+
+// 3. Create a new skill (if you learn something useful)
+await create_agent_skill({
+  name: "Optimize Loop",
+  description: "Guidelines for optimizing loops in JS",
+  content: "Always use map/reduce/filter instead of for loops where possible..."
+});
+```
+
 ## Error Handling
 
 ```javascript

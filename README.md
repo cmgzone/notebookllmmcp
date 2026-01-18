@@ -87,6 +87,46 @@ Retrieve previously saved verified code sources.
 }
 ```
 
+## Agent Skills Tools
+The MCP server provides tools to discover and use reusable professional skills stored in the database.
+
+### `list_agent_skills`
+List all available agent skills.
+
+```json
+{}
+```
+
+### `create_agent_skill`
+Create a new reusable agent skill.
+
+```json
+{
+  "name": "Optimize Loop",
+  "content": "Use map/reduce...",
+  "description": "JS optimization"
+}
+```
+
+### `update_agent_skill`
+Update an existing skill.
+
+```json
+{
+  "id": "skill-uuid",
+  "content": "New prompt content..."
+}
+```
+
+### `delete_agent_skill`
+Delete a skill.
+
+```json
+{
+  "id": "skill-uuid"
+}
+```
+
 ## Planning Mode Tools
 
 The MCP server also provides tools for managing plans and tasks, enabling coding agents to work on structured implementation plans.
@@ -289,7 +329,7 @@ Example: `nllm_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2`
 Create a `.env` file:
 
 ```env
-BACKEND_URL=https://notebookllm-ufj7.onrender.com
+BACKEND_URL=https://backend.taskiumnetwork.com
 CODING_AGENT_API_KEY=nllm_your-personal-api-token-here
 ```
 
@@ -308,7 +348,7 @@ Add to `.kiro/settings/mcp.json`:
       "command": "node",
       "args": ["path/to/backend/mcp-server/dist/index.js"],
       "env": {
-        "BACKEND_URL": "https://notebookllm-ufj7.onrender.com",
+        "BACKEND_URL": "https://backend.taskiumnetwork.com",
         "CODING_AGENT_API_KEY": "nllm_your-personal-api-token-here"
       }
     }
@@ -327,7 +367,7 @@ Add to `claude_desktop_config.json`:
       "command": "node",
       "args": ["/absolute/path/to/backend/mcp-server/dist/index.js"],
       "env": {
-        "BACKEND_URL": "https://notebookllm-ufj7.onrender.com",
+        "BACKEND_URL": "https://backend.taskiumnetwork.com",
         "CODING_AGENT_API_KEY": "nllm_your-personal-api-token-here"
       }
     }

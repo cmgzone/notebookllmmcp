@@ -74,6 +74,15 @@ const api = axios.create({
     },
     timeout: 30000,
 });
+// Agent Skills API instance
+const agentSkillsApi = axios.create({
+    baseURL: `${BACKEND_URL}/api/agent-skills`,
+    headers: {
+        'Content-Type': 'application/json',
+        ...(API_KEY && { 'Authorization': `Bearer ${API_KEY}` }),
+    },
+    timeout: 30000,
+});
 // Tool definitions
 const tools = [
     {
@@ -1695,6 +1704,100 @@ IMPORTANT: Always use this tool when:
             required: ['query'],
         },
     },
+    // ==================== AGENT SKILLS TOOLS ====================
+    {
+        name: 'list_agent_skills',
+        description: `List all available agent skills.
+    
+Returns a list of skills with:
+- id, name, description
+- content (the skill definition/prompt)
+- parameters (input schemas)
+- isActive
+
+Use to discover specialized capabilities you can leverage.`,
+        inputSchema: {
+            type: 'object',
+            properties: {},
+        },
+    },
+    {
+        name: 'create_agent_skill',
+        description: `Create a new reusable agent skill.
+
+Use this to save a useful prompt, workflow, or capability you have developed.
+The skill will be available for future use.`,
+        inputSchema: {
+            type: 'object',
+            properties: {
+                name: {
+                    type: 'string',
+                    description: 'Unique name of the skill'
+                },
+                content: {
+                    type: 'string',
+                    description: 'The skill definition (prompt/instruction)'
+                },
+                description: {
+                    type: 'string',
+                    description: 'Description of what the skill does'
+                },
+                parameters: {
+                    type: 'object',
+                    description: 'JSON schema of parameters (optional)'
+                },
+            },
+            required: ['name', 'content'],
+        },
+    },
+    {
+        name: 'update_agent_skill',
+        description: `Update an existing agent skill.`,
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: {
+                    type: 'string',
+                    description: 'ID of the skill to update'
+                },
+                name: {
+                    type: 'string',
+                    description: 'New name'
+                },
+                content: {
+                    type: 'string',
+                    description: 'New content'
+                },
+                description: {
+                    type: 'string',
+                    description: 'New description'
+                },
+                parameters: {
+                    type: 'object',
+                    description: 'New parameters'
+                },
+                isActive: {
+                    type: 'boolean',
+                    description: 'Active status'
+                },
+            },
+            required: ['id'],
+        },
+    },
+    {
+        name: 'delete_agent_skill',
+        description: `Delete an agent skill.`,
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: {
+                    type: 'string',
+                    description: 'ID of the skill to delete'
+                },
+            },
+            required: ['id'],
+        },
+    },
 ];
 // Input validation schemas
 const VerifyCodeSchema = z.object({
@@ -1958,6 +2061,24 @@ const GetCurrentTimeSchema = z.object({
 const WebSearchSchema = z.object({
     query: z.string().min(1),
     num: z.number().min(1).max(10).optional().default(5),
+});
+// ==================== AGENT SKILLS SCHEMAS ====================
+const CreateAgentSkillSchema = z.object({
+    name: z.string().min(1),
+    content: z.string().min(1),
+    description: z.string().optional(),
+    parameters: z.record(z.any()).optional(),
+});
+const UpdateAgentSkillSchema = z.object({
+    id: z.string().min(1),
+    name: z.string().optional(),
+    content: z.string().optional(),
+    description: z.string().optional(),
+    parameters: z.record(z.any()).optional(),
+    isActive: z.boolean().optional(),
+});
+const DeleteAgentSkillSchema = z.object({
+    id: z.string().min(1),
 });
 // GitHub API instance (uses different base URL)
 const githubApi = axios.create({
@@ -2733,6 +2854,55 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                         ],
                     };
                 }
+            }
+            // ==================== AGENT SKILLS HANDLERS ====================
+            case 'list_agent_skills': {
+                const response = await agentSkillsApi.get('/');
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(response.data, null, 2),
+                        },
+                    ],
+                };
+            }
+            case 'create_agent_skill': {
+                const input = CreateAgentSkillSchema.parse(args);
+                const response = await agentSkillsApi.post('/', input);
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(response.data, null, 2),
+                        },
+                    ],
+                };
+            }
+            case 'update_agent_skill': {
+                const input = UpdateAgentSkillSchema.parse(args);
+                const { id, ...body } = input;
+                const response = await agentSkillsApi.put(`/${id}`, body);
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(response.data, null, 2),
+                        },
+                    ],
+                };
+            }
+            case 'delete_agent_skill': {
+                const input = DeleteAgentSkillSchema.parse(args);
+                const response = await agentSkillsApi.delete(`/${input.id}`);
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(response.data, null, 2),
+                        },
+                    ],
+                };
             }
             default:
                 throw new Error(`Unknown tool: ${name}`);
